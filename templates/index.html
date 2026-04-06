@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Email Spam Detector</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0b0c10;
+      --surface: #13151c;
+      --border: #1e2130;
+      --accent: #00f5a0;
+      --accent2: #ff4f5e;
+      --text: #e8eaf0;
+      --muted: #5a5f78;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 80px;
+      background-image:
+        radial-gradient(ellipse 60% 40% at 80% 10%, rgba(0,245,160,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 10% 80%, rgba(255,79,94,0.05) 0%, transparent 60%);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+      animation: fadeDown 0.6s ease both;
+    }
+
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0,245,160,0.08);
+      border: 1px solid rgba(0,245,160,0.2);
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-family: 'DM Mono', monospace;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+
+    h1 span { color: var(--accent); }
+
+    .subtitle {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 400;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 720px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px;
+      animation: fadeUp 0.7s ease 0.15s both;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      background: #0d0f14;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      line-height: 1.7;
+      padding: 16px;
+      resize: vertical;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+
+    textarea:focus { border-color: rgba(0,245,160,0.4); }
+    textarea::placeholder { color: var(--muted); }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.02em;
+    }
+
+    .btn-primary {
+      flex: 1;
+      min-width: 180px;
+      padding: 14px 28px;
+      background: var(--accent);
+      color: #000;
+    }
+
+    .btn-primary:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-clear {
+      padding: 14px 20px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .btn-clear:hover { border-color: var(--muted); color: var(--text); }
+
+    .samples-label {
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 28px;
+      margin-bottom: 10px;
+    }
+
+    .samples {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .sample-btn {
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'Syne', sans-serif;
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 1px solid;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .sample-spam {
+      background: rgba(255,79,94,0.08);
+      border-color: rgba(255,79,94,0.3);
+      color: var(--accent2);
+    }
+
+    .sample-spam:hover { background: rgba(255,79,94,0.18); }
+
+    .sample-ham {
+      background: rgba(0,245,160,0.06);
+      border-color: rgba(0,245,160,0.25);
+      color: var(--accent);
+    }
+
+    .sample-ham:hover { background: rgba(0,245,160,0.14); }
+
+    /* Result panel */
+    #result {
+      margin-top: 28px;
+      display: none;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .result-box {
+      border-radius: 16px;
+      padding: 28px;
+      border: 1px solid;
+    }
+
+    .result-spam {
+      background: rgba(255,79,94,0.07);
+      border-color: rgba(255,79,94,0.3);
+    }
+
+    .result-ham {
+      background: rgba(0,245,160,0.05);
+      border-color: rgba(0,245,160,0.25);
+    }
+
+    .result-verdict {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .verdict-spam { color: var(--accent2); }
+    .verdict-ham { color: var(--accent); }
+
+    .verdict-icon { font-size: 2rem; }
+
+    .result-meta {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .meta-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+
+    .meta-key {
+      font-size: 10px;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .meta-val {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .bar-wrap {
+      margin-top: 18px;
+    }
+
+    .bar-label {
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .bar-track {
+      height: 6px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .bar-spam { background: var(--accent2); }
+    .bar-ham  { background: var(--accent); }
+
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    /* How it works section */
+    .how-it-works {
+      width: 100%;
+      max-width: 720px;
+      margin-top: 28px;
+      animation: fadeUp 0.7s ease 0.3s both;
+    }
+
+    .how-it-works summary {
+      cursor: pointer;
+      font-size: 12px;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .how-it-works summary::-webkit-details-marker { display: none; }
+    .how-it-works summary::after { content: '↓'; }
+    .how-it-works[open] summary::after { content: '↑'; }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      padding: 16px 0;
+    }
+
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .step-num {
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .step-title {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .step-desc {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      line-height: 1.5;
+    }
+
+    footer {
+      margin-top: 40px;
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:none; } }
+    @keyframes fadeUp   { from { opacity:0; transform:translateY(16px);  } to { opacity:1; transform:none; } }
+    @keyframes spin     { to   { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-badge">🛡️ &nbsp; ML Project — Naive Bayes Classifier</div>
+  <h1>Email <span>Spam</span> Detector</h1>
+  <p class="subtitle">TF-IDF Vectorization · Multinomial Naive Bayes · Scikit-learn</p>
+</header>
+
+<div class="card">
+  <label for="emailInput">Paste email content below</label>
+  <textarea id="emailInput" placeholder="e.g. Congratulations! You've won $1,000,000. Click here to claim your prize now!"></textarea>
+
+  <div class="btn-row">
+    <button class="btn-primary" onclick="analyze()">
+      <span id="btnText">Analyze Email</span>
+    </button>
+    <button class="btn-clear" onclick="clearAll()">Clear</button>
+  </div>
+
+  <div class="samples-label">Quick test samples</div>
+  <div class="samples">
+    <button class="sample-btn sample-spam" onclick="loadSample('spam1')">🔴 Spam #1</button>
+    <button class="sample-btn sample-spam" onclick="loadSample('spam2')">🔴 Spam #2</button>
+    <button class="sample-btn sample-ham"  onclick="loadSample('ham1')">🟢 Legit #1</button>
+    <button class="sample-btn sample-ham"  onclick="loadSample('ham2')">🟢 Legit #2</button>
+  </div>
+
+  <div id="result">
+    <div class="result-box" id="resultBox">
+      <div class="result-verdict" id="verdict"></div>
+      <div class="result-meta">
+        <div class="meta-item">
+          <div class="meta-key">Confidence</div>
+          <div class="meta-val" id="confidence">—</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-key">Spam Score</div>
+          <div class="meta-val" id="spamScore">—</div>
+        </div>
+      </div>
+      <div class="bar-wrap">
+        <div class="bar-label">
+          <span>Spam probability</span>
+          <span id="barLabel">—</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill bar-spam" id="spamBar" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<details class="how-it-works">
+  <summary>How does this work?</summary>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-title">Text Cleaning</div>
+      <div class="step-desc">Lowercase, remove URLs, punctuation & stopwords</div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-title">TF-IDF</div>
+      <div class="step-desc">Converts words into numerical feature vectors</div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-title">Naive Bayes</div>
+      <div class="step-desc">Computes probability of spam vs ham using Bayes theorem</div>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div class="step-title">Prediction</div>
+      <div class="step-desc">Returns class label + confidence score</div>
+    </div>
+  </div>
+</details>
+
+<footer>Built with Python · Flask · Scikit-learn &nbsp;|&nbsp; College ML Project</footer>
+
+<script>
+  const SAMPLES = {
+    spam1: "CONGRATULATIONS! You've been selected as today's lucky winner. Click here NOW to claim your FREE $1000 gift card before it expires!",
+    spam2: "Make money fast from home! Earn $5000 per week with zero investment. No experience needed. Join our exclusive program today!",
+    ham1:  "Hi, just a reminder that our team meeting is scheduled for Thursday at 3pm. Please review the attached agenda beforehand.",
+    ham2:  "Thank you for your order! Your package has been shipped and is expected to arrive within 3-5 business days. Track your order with #TR48291."
+  };
+
+  function loadSample(key) {
+    document.getElementById('emailInput').value = SAMPLES[key];
+    document.getElementById('result').style.display = 'none';
+  }
+
+  function setLoading(isLoading) {
+    const btn = document.getElementById('btnText');
+    btn.innerHTML = isLoading
+      ? '<span class="spinner"></span> Analyzing...'
+      : 'Analyze Email';
+  }
+
+  async function analyze() {
+    const text = document.getElementById('emailInput').value.trim();
+    if (!text) { alert('Please enter some email text first.'); return; }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch('/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email_text: text })
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        alert('Error: ' + data.error);
+        return;
+      }
+
+      // Update UI with results
+      const resultDiv   = document.getElementById('result');
+      const resultBox   = document.getElementById('resultBox');
+      const verdictEl   = document.getElementById('verdict');
+      const confidenceEl = document.getElementById('confidence');
+      const spamScoreEl = document.getElementById('spamScore');
+      const spamBarEl   = document.getElementById('spamBar');
+      const barLabelEl  = document.getElementById('barLabel');
+
+      resultDiv.style.display = 'block';
+
+      if (data.is_spam) {
+        resultBox.className  = 'result-box result-spam';
+        verdictEl.innerHTML  = '<span class="verdict-icon">🚨</span><span class="verdict-spam">SPAM DETECTED</span>';
+      } else {
+        resultBox.className  = 'result-box result-ham';
+        verdictEl.innerHTML  = '<span class="verdict-icon">✅</span><span class="verdict-ham">NOT SPAM</span>';
+      }
+
+      confidenceEl.textContent = data.confidence + '%';
+      spamScoreEl.textContent  = data.spam_probability + '%';
+      barLabelEl.textContent   = data.spam_probability + '%';
+      spamBarEl.style.width    = data.spam_probability + '%';
+
+    } catch (err) {
+      alert('Connection error. Make sure the Flask server is running.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function clearAll() {
+    document.getElementById('emailInput').value = '';
+    document.getElementById('result').style.display = 'none';
+  }
+
+  // Allow Ctrl+Enter to submit
+  document.getElementById('emailInput').addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Enter') analyze();
+  });
+</script>
+</body>
+</html>
